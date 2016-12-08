@@ -16,6 +16,7 @@ limitations under the License.
 package taskqueue
 
 import (
+	"context"
 	"errors"
 	"time"
 )
@@ -49,11 +50,7 @@ var ErrTimeout = errors.New("consumer timeout")
 
 // GetTask get least task with highest priority
 func (tc *DefaultTaskConsumer) GetTask() (*Task, error) {
-	timeout := make(chan bool, 1)
-	go func() {
-		time.Sleep(tc.timeout)
-		timeout <- true
-	}()
+	ctx, _ := context.WithTimeout(context.Background(), tc.timeout)
 
 	success := make(chan bool, 1)
 	var (
@@ -69,7 +66,7 @@ func (tc *DefaultTaskConsumer) GetTask() (*Task, error) {
 	select {
 	case <-success:
 		return task, err
-	case <-timeout:
+	case <-ctx.Done():
 		return nil, ErrTimeout
 	}
 }
